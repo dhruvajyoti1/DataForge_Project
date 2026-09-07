@@ -47,7 +47,7 @@ class TurnTracker:
             return
         if turn_id not in self.fenced_turns:
             self.fenced_turns.add(turn_id)
-            print(f"⚠️ [Turn {turn_id}] Task stale due to interruption! Fencing result.")
+            print(f" [Turn {turn_id}] Task stale due to interruption! Fencing result.")
 
 
 turn_tracker = TurnTracker()
@@ -196,7 +196,7 @@ async def entrypoint(ctx: JobContext):
                 clean_text = BLOCK_TAG_PATTERN.sub("", text)
                 clean_text = ORPHAN_TAG_PATTERN.sub("", clean_text).strip()
                 if clean_text:
-                    print(f"🤖 EchoAssist: {clean_text}")
+                    print(f" EchoAssist: {clean_text}")
 
         ev.speech_handle.add_done_callback(_on_speech_done)
 
@@ -205,11 +205,11 @@ async def entrypoint(ctx: JobContext):
         now = time.time()
         if ev.new_state == "speaking" and timestamps["user_speech_end"] > 0:
             latency = now - timestamps["user_speech_end"]
-            print(f"⏱️ [Listening → Speaking Latency]: {latency:.2f}s")
+            print(f" [Listening → Speaking Latency]: {latency:.2f}s")
             timestamps["agent_speech_start"] = now
         elif ev.new_state != "speaking" and timestamps["agent_speech_start"] > 0:
             duration = now - timestamps["agent_speech_start"]
-            print(f"⏱️ [Speaking Duration]: {duration:.2f}s\n")
+            print(f" [Speaking Duration]: {duration:.2f}s\n")
             timestamps["agent_speech_start"] = 0.0
 
     @session.on("conversation_item_added")
@@ -222,7 +222,7 @@ async def entrypoint(ctx: JobContext):
         if getattr(item, "role", None) == "user":
             active_turn = turn_tracker.new_turn()
             timestamps["user_speech_end"] = time.time()
-            print(f"\n🗣️ [Turn {active_turn}] You: {text_content}")
+            print(f"\n [Turn {active_turn}] You: {text_content}")
 
     await session.start(room=ctx.room, agent=Assistant())
 
