@@ -43,7 +43,6 @@ class TurnTracker:
         return turn_id != self.current_turn_id
 
     def fence_turn(self, turn_id: int):
-        # Ignore pre-turn-0 initial greeting interruptions
         if turn_id == 0:
             return
         if turn_id not in self.fenced_turns:
@@ -53,7 +52,6 @@ class TurnTracker:
 
 turn_tracker = TurnTracker()
 
-# Mock database entry strictly for official manual spec lookups
 REPAIR_MANUAL = {
     "torque_spec": "forty-five Newton meters for main bolts.",
     "reset_procedure": "Hold reset button for five seconds until green light flashes.",
@@ -104,7 +102,6 @@ class Assistant(Agent):
             turn_tracker.fence_turn(active_turn)
             raise
 
-        # STRICT FENCING: If user spoke again while tool was sleeping, drop execution
         if turn_tracker.is_stale(active_turn):
             turn_tracker.fence_turn(active_turn)
             raise asyncio.CancelledError(f"Turn {active_turn} cancelled due to user barge-in.")
@@ -130,8 +127,6 @@ async def entrypoint(ctx: JobContext):
     groq_key = os.getenv("GROQ_API_KEY")
     if not groq_key:
         raise ValueError("GROQ_API_KEY is missing from .env.local!")
-
-    # REMOVE the separate groq_client = AsyncOpenAI(...) block entirely.
     
     session = AgentSession(
         stt=deepgram.STT(
@@ -151,9 +146,8 @@ async def entrypoint(ctx: JobContext):
             endpointing_ms=500,
             utterance_end_ms=1000,
         ),
-        # --- FIX: Pass Groq URL and Key directly into LiveKit's OpenAI Plugin ---
         llm=openai.LLM(
-            model="openai/gpt-oss-120b",  # Updated to current active high-capability model
+            model="openai/gpt-oss-120b", 
             api_key=groq_key,
             base_url="https://api.groq.com/openai/v1"
         ),
@@ -166,16 +160,13 @@ async def entrypoint(ctx: JobContext):
         turn_handling=TurnHandlingOptions(
             interruption=InterruptionOptions(min_duration=0.2, min_words=0),
             endpointing=EndpointingOptions(mode="fixed", min_delay=0.5, max_delay=1.5   ),
-            # --- THIS ENABLES REAL-TIME PREEMPTIVE STREAMING ---
             preemptive_generation={
                 "enabled": True,
-                "preemptive_tts": True,         # Starts audio generation before turn confirmation
-                "max_speech_duration": 10.0,    # Skips preemptive triggering if utterance is too long
+                "preemptive_tts": True,         
+                "max_speech_duration": 10.0,    
             }
         ),
     )
-    
-    # ... rest of your code remains exactly the same ...
 
     timestamps = {"user_speech_end": 0.0, "agent_speech_start": 0.0}
 
