@@ -131,7 +131,7 @@
 
 <script>
   const TOKEN_ENDPOINT = "https://dataforge-project-jbd7.onrender.com/api/token";
-  const ROOM_NAME = "echoassist-demo";
+  const ROOM_NAME = "echoassist-" + Math.random().toString(36).slice(2, 10);
 
   const micBtn = document.getElementById("mic-btn");
   const statusEl = document.getElementById("status");
