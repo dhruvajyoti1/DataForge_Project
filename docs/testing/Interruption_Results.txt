@@ -1,0 +1,133 @@
+ECHOASSIST - INTERRUPTION TEST RESULTS
+
+Project: EchoAssist
+Tester: Person C
+
+==================================================
+INT-01 - Basic interruption
+==================================================
+
+Expected:
+Assistant should stop the old response when the user interrupts.
+
+Result:
+PASS
+
+Observation:
+The system detected interrupted tasks and marked them as stale.
+Console showed:
+"Task stale due to interruption! Fencing result."
+
+
+==================================================
+INT-02 - New question after interruption
+==================================================
+
+Expected:
+The new question should take priority over the interrupted question.
+
+Result:
+PASS
+
+Observation:
+After an interrupted task, the assistant processed the new
+request instead of returning to the previous task.
+
+
+==================================================
+INT-03 - Interruption during lookup
+==================================================
+
+Expected:
+If the user interrupts while a lookup is running, the old lookup
+result should not be returned after the interruption.
+
+Result:
+PASS
+
+Observation:
+The previous task was marked stale and fenced. The new request
+was processed separately.
+
+
+==================================================
+INT-04 - Reset procedure lookup
+==================================================
+
+Expected:
+Assistant should process the new request and return the correct
+result.
+
+Result:
+PASS
+
+Observation:
+After interruption, the user asked for the reset procedure.
+The assistant asked for the vehicle, then processed "Bike".
+
+Tool result:
+"Hold reset button for five seconds until green light flashes."
+
+The correct result was returned and no previous stale result appeared.
+
+
+==================================================
+INT-05 - Conversation memory
+==================================================
+
+Expected:
+Assistant should use information from the current conversation
+correctly.
+
+Result:
+PARTIAL
+
+Observation:
+The assistant correctly followed the follow-up "Bike" after
+asking which vehicle's reset procedure was required.
+
+
+==================================================
+INT-06 - Speech recognition
+==================================================
+
+Expected:
+Assistant should correctly understand the user's interruption
+and new request.
+
+Result:
+PARTIAL
+
+Observation:
+Some phrases were transcribed incorrectly, for example
+"reset procedure" was once understood as "reset processor".
+This appears to be a speech-recognition issue rather than an
+interruption-control failure.
+
+
+==================================================
+INT-04 - Interrupt torque request with reset request
+==================================================
+
+Result: PASS for interruption handling
+
+Observation:
+The torque task was marked stale and fenced when the new
+request was received. The old torque result did not return.
+
+The reset request was then processed, but the assistant asked
+for additional vehicle make/model information, so the complete
+lookup flow was not demonstrated in this run.
+
+Evidence:
+Turns 6-8.
+==================================================
+Overall Result
+==================================================
+
+The interruption mechanism successfully detected stale tasks,
+fenced interrupted work, and allowed newer requests to take
+priority.
+
+Some speech-recognition and response-formatting issues were
+observed and should be treated as separate bugs.
