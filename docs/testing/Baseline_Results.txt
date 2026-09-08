@@ -1,0 +1,57 @@
+ECHOASSIST - BASELINE RESULTS
+
+Project: EchoAssist
+Tester: Person C
+
+==================================================
+NORMAL RESPONSE LATENCY
+==================================================
+
+Observed Listening → Speaking Latency:
+
+Turn 2: 1.76 seconds
+Turn 3: 6.73 seconds
+Turn 6: 1.48 seconds
+Turn 7: 0.60 seconds
+Turn 10: 2.40 seconds
+Turn 11: 3.20 seconds
+Turn 14: 2.03 seconds
+Turn 16: 2.02 seconds
+Turn 17: 1.16 seconds
+Turn 24: 2.07 seconds
+Turn 25: 6.73 seconds
+
+==================================================
+OBSERVATION
+==================================================
+
+Normal conversational responses generally started within
+approximately one to three seconds.
+
+Lookup-based responses took longer because the system contains
+a simulated five-second repair-manual lookup.
+
+The lowest observed latency was 0.20 seconds during an
+interruption test.
+
+==================================================
+INTERRUPTION OBSERVATION
+==================================================
+
+During interruption tests, the system detected stale tasks
+and printed:
+
+"Task stale due to interruption! Fencing result."
+
+This indicates that interrupted tasks were detected and fenced
+instead of being allowed to return stale results.
+
+==================================================
+BASELINE CONCLUSION
+==================================================
+
+EchoAssist provides low-latency conversational responses,
+while lookup-based responses naturally take longer.
+
+The interruption mechanism successfully detects and fences
+stale tasks during testing.

@@ -1,0 +1,106 @@
+ECHOASSIST - BUG LOG
+
+Project: EchoAssist
+Tester: Person C
+
+
+==================================================
+BUG-001 - Speech recognition error
+==================================================
+
+Severity: Medium
+
+Test:
+Interruption / reset procedure test
+
+Expected:
+Assistant should correctly understand "reset procedure".
+
+Actual:
+"Reset procedure" was once transcribed as "reset processor".
+
+Impact:
+The assistant could not correctly answer the intended request.
+
+Reproduction:
+Say "Reset procedure" clearly.
+
+Status:
+Open
+
+
+==================================================
+BUG-002 - Garbled speech/output formatting
+==================================================
+
+Severity: Medium
+
+Test:
+Bike reset procedure lookup
+
+Expected:
+Assistant should speak the tool result cleanly.
+
+Actual:
+The output briefly contained garbled characters before the
+correct reset procedure.
+
+Expected result:
+"Hold reset button for five seconds until green light flashes."
+
+Impact:
+Makes the response sound/appear broken even though the correct
+tool result is eventually produced.
+
+Status:
+Open
+
+
+==================================================
+BUG-003 - Fragmented speech treated as separate turns
+==================================================
+
+Severity: Low
+
+Test:
+Natural conversation / odometer question
+
+Expected:
+Assistant should handle a user continuing their sentence naturally.
+
+Actual:
+Some speech fragments were treated as separate turns and were
+marked as stale/interrupted.
+
+Impact:
+Can create unnecessary interruptions during normal speech.
+
+Status:
+Open / Needs further testing
+
+
+==================================================
+TESTING SUMMARY
+==================================================
+
+Main interruption mechanism:
+PASS
+
+Stale-task fencing:
+PASS
+
+New request priority:
+PASS
+
+Lookup cancellation/protection:
+PASS
+
+Speech recognition:
+PARTIAL
+
+Output formatting:
+PARTIAL
+
+Overall:
+The core interruption and stale-result protection works, but
+speech recognition and output formatting need improvement.

@@ -1,0 +1,175 @@
+VOICE ASSISTANT — INTERRUPTION TEST PLAN
+
+
+PROJECT GOAL
+The voice assistant is designed for a field technician who may need to
+interrupt the assistant while working.
+
+The main feature we need to prove is that the assistant handles
+interruptions correctly.
+
+--------------------------------------------------
+1. TECHNICIAN TEST QUESTIONS
+--------------------------------------------------
+
+Q1. What is the torque specification for bolt 4?
+
+Q2. How do I reset the pressure sensor?
+
+Q3. What should I check if the motor does not start?
+
+Q4. What voltage should I measure at the sensor?
+
+Q5. How do I replace the damaged filter?
+
+Q6. What does error code E17 mean?
+
+Q7. What tools do I need to remove the pump?
+
+Q8. What should I check if the temperature is too high?
+
+
+--------------------------------------------------
+2. WHAT COUNTS AS A SUCCESSFUL INTERRUPTION?
+--------------------------------------------------
+
+1. SPEECH STOPS QUICKLY
+
+When the technician starts speaking while the assistant is talking,
+the assistant should stop speaking almost immediately.
+
+2. OLD RESPONSE IS CANCELLED
+
+If the assistant was generating an answer or looking up information
+when the technician interrupts, the old answer must not be spoken later.
+
+3. NEW QUESTION TAKES PRIORITY
+
+After an interruption, the assistant should process the new question
+instead of continuing with the previous question.
+
+4. NO UNEXPECTED OLD SPEECH
+
+The assistant should not finish or restart the old answer after
+responding to the new question.
+
+5. CONVERSATION MEMORY IS CORRECT
+
+The assistant should remember what was actually spoken and heard,
+not an answer that was generated but never spoken because the user
+interrupted it.
+
+6. NO CRASH
+
+The application should continue working normally after an interruption.
+
+
+--------------------------------------------------
+3. INTERRUPTION TEST CASES
+--------------------------------------------------
+
+INT-01 — Interrupt while assistant is speaking
+
+Action:
+Ask a question and interrupt while the assistant is speaking.
+
+Expected:
+The assistant stops speaking quickly and processes the new question.
+
+
+INT-02 — Interrupt immediately after speech begins
+
+Action:
+Ask a question and interrupt almost immediately after the assistant
+starts speaking.
+
+Expected:
+The assistant stops without continuing the old response.
+
+
+INT-03 — Interrupt during a long answer
+
+Action:
+Ask a question that produces a longer answer and interrupt halfway.
+
+Expected:
+The remaining old answer is not spoken.
+
+
+INT-04 — Interrupt during a lookup
+
+Action:
+Ask a question that requires the assistant to look up information.
+Interrupt before the lookup finishes.
+
+Expected:
+The old lookup result is discarded and is never spoken later.
+
+
+INT-05 — Interrupt with a completely different question
+
+Action:
+Ask Question 1 and interrupt it with an unrelated Question 2.
+
+Expected:
+The assistant answers Question 2 and does not return to Question 1.
+
+
+INT-06 — Multiple interruptions
+
+Action:
+Ask several questions and interrupt the assistant multiple times.
+
+Expected:
+The system remains stable and always gives priority to the latest
+question.
+
+
+INT-07 — Test conversation memory
+
+Action:
+Interrupt an answer before it finishes and later ask the assistant
+about what it said.
+
+Expected:
+The assistant's memory should reflect what was actually spoken,
+not the unfinished answer.
+
+
+INT-08 — Interrupt a failed/not-found lookup
+
+Action:
+Ask for information that may not exist and interrupt during the
+response or lookup.
+
+Expected:
+The assistant should not crash or become confused.
+
+
+--------------------------------------------------
+4. TEST RESULT
+--------------------------------------------------
+
+For every test, record:
+
+- Did the assistant stop speaking?
+- Did it stop quickly?
+- Did the old answer return?
+- Was the new question answered?
+- Did the application crash?
+- Was the conversation memory correct?
+- Any unusual behavior?
+
+
+--------------------------------------------------
+5. SUCCESS CONDITION
+--------------------------------------------------
+
+The interruption feature will be considered successful when:
+
+- The assistant stops speaking when interrupted.
+- Old responses are cancelled.
+- Old lookup results do not appear after interruption.
+- The latest question receives priority.
+- Conversation memory remains accurate.
+- The application does not crash during interruptions.

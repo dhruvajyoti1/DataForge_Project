@@ -1,0 +1,111 @@
+ECHOASSIST - FINAL TESTING PROOF
+
+Project: EchoAssist
+Tester: Person C
+
+
+==================================================
+1. TESTING OBJECTIVE
+==================================================
+
+The main testing objective was to verify that EchoAssist can
+handle user interruptions without returning stale responses
+from an abandoned request.
+
+
+==================================================
+2. CORE TEST PERFORMED
+==================================================
+
+The assistant was given a vehicle-related request and was then
+interrupted with a newer request.
+
+The console detected the interrupted task and displayed:
+
+"Task stale due to interruption! Fencing result."
+
+The newer request was then processed instead of returning the
+old response.
+
+
+==================================================
+3. INTERRUPTION RESULTS
+==================================================
+
+Stale-task detection: PASS
+
+Stale-task fencing: PASS
+
+New question priority: PASS
+
+Old response returning after interruption: NOT OBSERVED
+
+Lookup flow after interruption: PARTIAL
+
+Speech recognition: PARTIAL
+
+TTS/output formatting: PARTIAL
+
+
+==================================================
+4. OBSERVED EVIDENCE
+==================================================
+
+During testing, interrupted turns were marked as stale and
+fenced.
+
+Example:
+
+Turn 6: Torque request
+        ↓
+Task became stale
+        ↓
+Task was fenced
+        ↓
+Turn 7: Reset procedure
+        ↓
+New request was processed
+
+The system did not return the old torque result after the
+interruption.
+
+
+==================================================
+5. BASELINE PERFORMANCE
+==================================================
+
+Normal conversational responses generally started within
+approximately one to three seconds.
+
+Lookup-based responses took longer because the project uses a
+simulated repair-manual lookup.
+
+
+==================================================
+6. ISSUES FOUND
+==================================================
+
+BUG-001:
+Speech recognition occasionally misunderstood phrases.
+Example: "reset procedure" was transcribed as "reset processor".
+
+BUG-002:
+One reset-procedure response contained garbled output before
+the correct response.
+
+BUG-003:
+Some speech fragments were treated as separate turns and
+marked as stale.
+
+
+==================================================
+7. OVERALL CONCLUSION
+==================================================
+
+The core interruption mechanism works successfully.
+
+EchoAssist detects interrupted tasks, fences stale work, and
+gives priority to newer user requests.
+
+Additional improvements are required for speech recognition,
+TTS/output formatting, and the vehicle-specific lookup flow.

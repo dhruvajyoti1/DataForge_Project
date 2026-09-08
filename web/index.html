@@ -15,25 +15,26 @@
     font-family: system-ui, sans-serif;
     background: #0f172a;
     color: #e5e7eb;
-    height: 100vh;
+    min-height: 100vh;
     margin: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 28px;
+    padding: 24px 16px 40px;
+    gap: 20px;
   }
-  h1 { font-size: 1.1rem; font-weight: 600; color: #94a3b8; margin: 0; }
+  h1 { font-size: 1.1rem; font-weight: 600; color: #94a3b8; margin: 8px 0 0; }
   #mic-btn {
-    width: 120px;
-    height: 120px;
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
     border: none;
     background: var(--idle);
     color: white;
-    font-size: 2.2rem;
+    font-size: 1.8rem;
     cursor: pointer;
     transition: background 0.2s, transform 0.15s;
+    flex-shrink: 0;
   }
   #mic-btn:active { transform: scale(0.96); }
   #mic-btn.listening { background: var(--listening); box-shadow: 0 0 0 8px rgba(37,99,235,0.25); }
@@ -44,27 +45,88 @@
   #status.listening { color: var(--listening); }
   #status.speaking { color: var(--speaking); }
   #status.interrupted { color: var(--interrupted); }
+
+  #transcript {
+    width: min(92vw, 560px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #111827;
+    border-radius: 12px;
+    padding: 16px;
+    min-height: 200px;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+  .bubble {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 0.92rem;
+    line-height: 1.35;
+    white-space: pre-wrap;
+  }
+  .bubble.user {
+    align-self: flex-end;
+    background: #2563eb;
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+  .bubble.agent {
+    align-self: flex-start;
+    background: #1e293b;
+    color: #e5e7eb;
+    border-bottom-left-radius: 4px;
+  }
+  .bubble.agent.interim { opacity: 0.55; font-style: italic; }
+  .bubble.system {
+    align-self: center;
+    background: transparent;
+    color: #fbbf24;
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-align: center;
+    max-width: 95%;
+  }
+  .bubble.system.interrupt { color: #f87171; }
+
+  #log-toggle {
+    width: min(92vw, 560px);
+    background: none;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
   #log {
-    width: min(90vw, 480px);
-    max-height: 200px;
+    width: min(92vw, 560px);
+    max-height: 160px;
     overflow-y: auto;
     background: #1e293b;
     border-radius: 8px;
     padding: 10px 14px;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-family: ui-monospace, monospace;
-    color: #cbd5e1;
+    color: #94a3b8;
+    display: none;
   }
+  #log.visible { display: block; }
   #log div { padding: 2px 0; border-bottom: 1px solid #334155; }
   #log div:last-child { border-bottom: none; }
-  .tag-interrupt { color: #f87171; font-weight: 600; }
-  .tag-fenced { color: #fbbf24; font-weight: 600; }
 </style>
 </head>
 <body>
+
   <h1>EchoAssist — Field Technician Assistant</h1>
+
   <button id="mic-btn">MIC</button>
   <div id="status" class="idle">Not connected</div>
+
+  <div id="transcript"></div>
+
+  <button id="log-toggle">Show technical log</button>
   <div id="log"><div>Waiting to connect...</div></div>
 
 <script>
@@ -74,9 +136,23 @@
   const micBtn = document.getElementById("mic-btn");
   const statusEl = document.getElementById("status");
   const logEl = document.getElementById("log");
+  const logToggle = document.getElementById("log-toggle");
+  const transcriptEl = document.getElementById("transcript");
 
   let room = null;
   let connected = false;
+
+  const activeBubbles = new Map();
+
+  let agentWasSpeaking = false;
+  let userWasSpeaking = false;
+
+  logToggle.addEventListener("click", () => {
+    logEl.classList.toggle("visible");
+    logToggle.textContent = logEl.classList.contains("visible")
+      ? "Hide technical log"
+      : "Show technical log";
+  });
 
   function setStatus(state, text) {
     statusEl.className = state;
@@ -84,12 +160,39 @@
     micBtn.className = state;
   }
 
-  function log(msg, cls) {
+  function log(msg) {
     const line = document.createElement("div");
-    if (cls) line.innerHTML = "<span class=\"" + cls + "\">" + msg + "</span>";
-    else line.textContent = msg;
+    line.textContent = msg;
     logEl.appendChild(line);
     logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function scrollTranscript() {
+    transcriptEl.scrollTop = transcriptEl.scrollHeight;
+  }
+
+  function addSystemBubble(text, isInterrupt) {
+    const bubble = document.createElement("div");
+    bubble.className = "bubble system" + (isInterrupt ? " interrupt" : "");
+    bubble.textContent = text;
+    transcriptEl.appendChild(bubble);
+    scrollTranscript();
+  }
+
+  function upsertBubble(segmentId, role, text, isFinal) {
+    let bubble = activeBubbles.get(segmentId);
+    if (!bubble) {
+      bubble = document.createElement("div");
+      bubble.className = "bubble " + role + (isFinal ? "" : " interim");
+      transcriptEl.appendChild(bubble);
+      activeBubbles.set(segmentId, bubble);
+    }
+    bubble.textContent = text;
+    if (isFinal) {
+      bubble.classList.remove("interim");
+      activeBubbles.delete(segmentId);
+    }
+    scrollTranscript();
   }
 
   async function fetchConnectionDetails() {
@@ -121,15 +224,31 @@
     room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
       const localSpeaking = speakers.some((p) => p.isLocal);
       const agentSpeaking = speakers.some((p) => !p.isLocal);
+
       if (localSpeaking && agentSpeaking) {
         setStatus("interrupted", "Interrupting...");
-        log("Interruption detected", "tag-interrupt");
+        if (!userWasSpeaking || !agentWasSpeaking) {
+          addSystemBubble("Interrupted - previous answer dropped", true);
+          log("Interruption detected.");
+        }
       } else if (localSpeaking) {
         setStatus("listening", "Listening...");
       } else if (agentSpeaking) {
         setStatus("speaking", "EchoAssist speaking...");
       } else {
         setStatus("idle", "Idle");
+      }
+
+      userWasSpeaking = localSpeaking;
+      agentWasSpeaking = agentSpeaking;
+    });
+
+    room.on(RoomEvent.TranscriptionReceived, (segments, participant) => {
+      const isLocal = participant && participant.isLocal;
+      const role = isLocal ? "user" : "agent";
+      for (const seg of segments) {
+        if (!seg.text) continue;
+        upsertBubble(seg.id, role, seg.text, seg.final === true);
       }
     });
 
