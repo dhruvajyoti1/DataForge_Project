@@ -53,8 +53,16 @@ class TurnTracker:
 turn_tracker = TurnTracker()
 
 REPAIR_MANUAL = {
-    "torque_spec": "forty-five Newton meters for main bolts.",
-    "reset_procedure": "Hold reset button for five seconds until green light flashes.",
+    "spark plug": "Torque spec for the spark plug is 20 newton meters.",
+    "check engine light": "To reset the check engine light, disconnect the battery for fifteen seconds, then reconnect it.",
+    "oil drain plug": "Torque spec for the oil drain plug is 35 newton meters.",
+    "brake bleed valve": "The brake bleed valve should be turned a quarter turn counter-clockwise to release it.",
+    "lug nuts": "Torque spec for the wheel lug nuts is 110 newton meters.",
+    "tire pressure sensor": (
+        "To reset the tire pressure sensor: turn the ignition on with the "
+        "engine off, press and hold the T P M S reset button until the "
+        "light blinks three times, then start the engine."
+    ),
 }
 
 BLOCK_TAG_PATTERN = re.compile(r"<([a-zA-Z_][a-zA-Z0-9_]*)>.*?</\1>", re.DOTALL)
