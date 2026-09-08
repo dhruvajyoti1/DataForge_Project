@@ -68,7 +68,6 @@
   <div id="log"><div>Waiting to connect...</div></div>
 
 <script>
-  const LIVEKIT_URL = "wss://project1-g3iz8cai.livekit.cloud";
   const TOKEN_ENDPOINT = "https://dataforge-project-jbd7.onrender.com/api/token";
   const ROOM_NAME = "echoassist-demo";
 
@@ -99,7 +98,7 @@
     const resp = await fetch(url);
     if (!resp.ok) throw new Error("Could not fetch token from token server.");
     const data = await resp.json();
-    return data.token;
+    return { token: data.token, serverUrl: data.serverUrl };
   }
 
   async function connectToRoom() {
@@ -141,8 +140,8 @@
       }
     });
 
-    const token = await fetchConnectionDetails();
-    await room.connect(LIVEKIT_URL, token);
+    const { token, serverUrl } = await fetchConnectionDetails();
+    await room.connect(serverUrl, token);
     await room.localParticipant.setMicrophoneEnabled(true);
   }
 

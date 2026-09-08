@@ -3,16 +3,23 @@ import os
 import uuid
 from datetime import timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, urlparse
 
+from dotenv import load_dotenv
 from livekit.api import AccessToken, VideoGrants
 
-LIVEKIT_URL = os.getenv("LIVEKIT_URL")
-LIVEKIT_API_KEY = os.getenv("LIVEKIT_API_KEY")
-LIVEKIT_API_SECRET = os.getenv("LIVEKIT_API_SECRET")
+load_dotenv(".env.local")  
+
+LIVEKIT_URL = (os.getenv("LIVEKIT_URL") or "").strip().strip('"').strip("'")
+LIVEKIT_API_KEY = (os.getenv("LIVEKIT_API_KEY") or "").strip().strip('"').strip("'")
+LIVEKIT_API_SECRET = (
+    (os.getenv("LIVEKIT_API_SECRET") or "").strip().strip('"').strip("'")
+)
 
 if not all([LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET]):
-    raise RuntimeError("Missing LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET env vars.")
+    raise RuntimeError(
+        "Missing LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET env vars."
+    )
 
 
 def generate_token(room_name: str, identity: str) -> str:
@@ -76,6 +83,12 @@ class TokenHandler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8080))
+    print(f"[diag] LIVEKIT_URL = {LIVEKIT_URL}")
+    print(
+        f"[diag] API_KEY = {LIVEKIT_API_KEY[:4]}...{LIVEKIT_API_KEY[-4:]}"
+        f" (len={len(LIVEKIT_API_KEY)})"
+    )
+    print(f"[diag] SECRET len = {len(LIVEKIT_API_SECRET)}")
     server = HTTPServer(("0.0.0.0", port), TokenHandler)
     print(f"Token server running on port {port}")
-    server.serve_forever() 
+    server.serve_forever()
