@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>EchoAssist</title>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+<style>
+  :root {
+    --idle: #6b7280;
+    --listening: #2563eb;
+    --speaking: #16a34a;
+    --interrupted: #dc2626;
+  }
+  body {
+    font-family: system-ui, sans-serif;
+    background: #0f172a;
+    color: #e5e7eb;
+    height: 100vh;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+  }
+  h1 { font-size: 1.1rem; font-weight: 600; color: #94a3b8; margin: 0; }
+  #mic-btn {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: none;
+    background: var(--idle);
+    color: white;
+    font-size: 2.2rem;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+  }
+  #mic-btn:active { transform: scale(0.96); }
+  #mic-btn.listening { background: var(--listening); box-shadow: 0 0 0 8px rgba(37,99,235,0.25); }
+  #mic-btn.speaking  { background: var(--speaking);  box-shadow: 0 0 0 8px rgba(22,163,74,0.25); }
+  #mic-btn.interrupted { background: var(--interrupted); box-shadow: 0 0 0 8px rgba(220,38,38,0.35); }
+  #status { font-size: 1rem; font-weight: 500; letter-spacing: 0.02em; }
+  #status.idle { color: var(--idle); }
+  #status.listening { color: var(--listening); }
+  #status.speaking { color: var(--speaking); }
+  #status.interrupted { color: var(--interrupted); }
+  #log {
+    width: min(90vw, 480px);
+    max-height: 200px;
+    overflow-y: auto;
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    font-family: ui-monospace, monospace;
+    color: #cbd5e1;
+  }
+  #log div { padding: 2px 0; border-bottom: 1px solid #334155; }
+  #log div:last-child { border-bottom: none; }
+  .tag-interrupt { color: #f87171; font-weight: 600; }
+  .tag-fenced { color: #fbbf24; font-weight: 600; }
+</style>
+</head>
+<body>
+  <h1>EchoAssist — Field Technician Assistant</h1>
+  <button id="mic-btn">MIC</button>
+  <div id="status" class="idle">Not connected</div>
+  <div id="log"><div>Waiting to connect...</div></div>
+
+<script>
+  const LIVEKIT_URL = "wss://project1-g3iz8cai.livekit.cloud";
+  const TOKEN_ENDPOINT = "https://dataforge-project-jbd7.onrender.com/api/token";
+  const ROOM_NAME = "echoassist-demo";
+
+  const micBtn = document.getElementById("mic-btn");
+  const statusEl = document.getElementById("status");
+  const logEl = document.getElementById("log");
+
+  let room = null;
+  let connected = false;
+
+  function setStatus(state, text) {
+    statusEl.className = state;
+    statusEl.textContent = text;
+    micBtn.className = state;
+  }
+
+  function log(msg, cls) {
+    const line = document.createElement("div");
+    if (cls) line.innerHTML = "<span class=\"" + cls + "\">" + msg + "</span>";
+    else line.textContent = msg;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  async function fetchConnectionDetails() {
+    const identity = "user-" + Math.random().toString(36).slice(2, 10);
+    const url = TOKEN_ENDPOINT + "?room=" + encodeURIComponent(ROOM_NAME) + "&identity=" + identity;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error("Could not fetch token from token server.");
+    const data = await resp.json();
+    return data.token;
+  }
+
+  async function connectToRoom() {
+    const RoomCtor = LivekitClient.Room;
+    const RoomEvent = LivekitClient.RoomEvent;
+    room = new RoomCtor({ adaptiveStream: true });
+
+    room.on(RoomEvent.Connected, () => {
+      connected = true;
+      setStatus("idle", "Connected - say something");
+      log("Connected to room.");
+    });
+
+    room.on(RoomEvent.Disconnected, () => {
+      connected = false;
+      setStatus("idle", "Disconnected");
+      log("Disconnected.");
+    });
+
+    room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
+      const localSpeaking = speakers.some((p) => p.isLocal);
+      const agentSpeaking = speakers.some((p) => !p.isLocal);
+      if (localSpeaking && agentSpeaking) {
+        setStatus("interrupted", "Interrupting...");
+        log("Interruption detected", "tag-interrupt");
+      } else if (localSpeaking) {
+        setStatus("listening", "Listening...");
+      } else if (agentSpeaking) {
+        setStatus("speaking", "EchoAssist speaking...");
+      } else {
+        setStatus("idle", "Idle");
+      }
+    });
+
+    room.on(RoomEvent.TrackSubscribed, (track) => {
+      if (track.kind === "audio") {
+        const el = track.attach();
+        document.body.appendChild(el);
+      }
+    });
+
+    const token = await fetchConnectionDetails();
+    await room.connect(LIVEKIT_URL, token);
+    await room.localParticipant.setMicrophoneEnabled(true);
+  }
+
+  micBtn.addEventListener("click", async () => {
+    if (!connected) {
+      setStatus("idle", "Connecting...");
+      try {
+        await connectToRoom();
+      } catch (err) {
+        setStatus("idle", "Connection failed");
+        log("Error: " + err.message);
+      }
+    } else {
+      const enabled = room.localParticipant.isMicrophoneEnabled;
+      await room.localParticipant.setMicrophoneEnabled(!enabled);
+      log(enabled ? "Mic muted" : "Mic unmuted");
+    }
+  });
+</script>
+</body>
+</html>
