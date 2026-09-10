@@ -115,11 +115,14 @@ class Assistant(Agent):
             raise asyncio.CancelledError(f"Turn {active_turn} cancelled due to user barge-in.")
 
         key_lower = query_key.lower().replace("_", " ")
-        if any(w in key_lower for w in ["reset", "procedure", "factory", "system"]):
-            result = REPAIR_MANUAL["reset_procedure"]
-        elif any(w in key_lower for w in ["torque", "bolt", "pole", "spec", "board"]):
-            result = REPAIR_MANUAL["torque_spec"]
-        else:
+        
+        result = None
+        for manual_key, manual_value in REPAIR_MANUAL.items():
+            if manual_key in key_lower:
+                result = manual_value
+                break
+
+        if result is None:
             result = "Specification entry not found in manual. Relying on general automotive knowledge."
 
         print(f"✅ [Turn {active_turn}] Tool finished: {result}")

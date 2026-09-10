@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script>
+
+  (function () {
+    try {
+      var stored = localStorage.getItem("echoassist_theme");
+      var isDark = stored ? stored === "dark" : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      if (isDark) document.documentElement.classList.add("dark");
+    } catch (e) {}
+  })();
+</script>
+<title>EchoAssist — History</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<button id="mobile-nav-toggle" class="mobile-nav-toggle" aria-label="Open menu" aria-expanded="false">
+  <span></span><span></span><span></span>
+</button>
+<div id="nav-overlay" class="nav-overlay"></div>
+
+<div class="app-shell">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-head">
+        <div class="brand">
+          <span class="brand-mark">EA</span>
+          <span class="brand-name">EchoAssist</span>
+        </div>
+        <button id="sidebar-retract" class="sidebar-retract" aria-label="Collapse sidebar" aria-expanded="true">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+      </div>
+
+      <button id="theme-toggle" class="theme-toggle" aria-label="Switch to dark mode">
+        <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
+        <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <span class="theme-toggle-label">Light mode</span>
+      </button>
+
+      <nav class="side-nav" aria-label="Primary">
+        <a href="index.html" class="side-nav-link">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"></path><path d="M5 10v10h14V10"></path></svg>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="voice-agent.html" class="side-nav-link">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0"></path><path d="M12 19v3"></path></svg>
+          <span class="nav-label">Voice Agent</span>
+        </a>
+        <a href="history.html" class="side-nav-link is-active">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg>
+          <span class="nav-label">History</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <span class="sidebar-user-avatar" id="sidebar-user-avatar">AR</span>
+        <span class="sidebar-user-name" id="sidebar-user-name">Alex Rivera</span>
+      </div>
+      <button class="logout-btn" id="logout-btn" type="button">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        <span class="nav-label">Log out</span>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main" id="history-page">
+
+    <section class="page-header">
+      <p class="hero-kicker">Session log</p>
+      <h1 class="page-title">History</h1>
+      <p class="page-sub">Every technician's sessions with EchoAssist — how long they talked, what they asked, and how it ended. Sample data for this build; will read from real session logs once the backend is wired up.</p>
+    </section>
+
+    <section class="history-table-wrap">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Technician</th>
+            <th>Started</th>
+            <th>Duration</th>
+            <th>What they asked</th>
+            <th>Outcome</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Technician"><span class="user-chip"><span class="user-chip-avatar">AR</span>Alex Rivera</span></td>
+            <td data-label="Started">Sep 9, 2026 · 2:14 PM</td>
+            <td data-label="Duration">6m 42s</td>
+            <td data-label="Asked">2019 Civic — brake pad torque spec</td>
+            <td data-label="Outcome"><span class="status-pill status-resolved">Resolved</span></td>
+          </tr>
+          <tr>
+            <td data-label="Technician"><span class="user-chip"><span class="user-chip-avatar">MK</span>Maria Kowalski</span></td>
+            <td data-label="Started">Sep 9, 2026 · 11:02 AM</td>
+            <td data-label="Duration">11m 05s</td>
+            <td data-label="Asked">Harley Sportster — starter relay location, then interrupted to ask about the fuse box</td>
+            <td data-label="Outcome"><span class="status-pill status-interrupted">2 interruptions handled</span></td>
+          </tr>
+          <tr>
+            <td data-label="Technician"><span class="user-chip"><span class="user-chip-avatar">JT</span>Jordan Tavares</span></td>
+            <td data-label="Started">Sep 8, 2026 · 4:47 PM</td>
+            <td data-label="Duration">3m 18s</td>
+            <td data-label="Asked">Coolant type for a 2021 F-150</td>
+            <td data-label="Outcome"><span class="status-pill status-resolved">Resolved</span></td>
+          </tr>
+          <tr>
+            <td data-label="Technician"><span class="user-chip"><span class="user-chip-avatar">AR</span>Alex Rivera</span></td>
+            <td data-label="Started">Sep 8, 2026 · 9:36 AM</td>
+            <td data-label="Duration">8m 51s</td>
+            <td data-label="Asked">Ducati Monster — chain tension, interrupted mid-answer to ask for torque values instead</td>
+            <td data-label="Outcome"><span class="status-pill status-interrupted">1 interruption handled</span></td>
+          </tr>
+          <tr>
+            <td data-label="Technician"><span class="user-chip"><span class="user-chip-avatar">PS</span>Priya Shah</span></td>
+            <td data-label="Started">Sep 7, 2026 · 3:20 PM</td>
+            <td data-label="Duration">2m 03s</td>
+            <td data-label="Asked">Tire pressure spec for a loaded cargo van</td>
+            <td data-label="Outcome"><span class="status-pill status-resolved">Resolved</span></td>
+          </tr>
+          <tr>
+            <td data-label="Technician"><span class="user-chip"><span class="user-chip-avatar">MK</span>Maria Kowalski</span></td>
+            <td data-label="Started">Sep 6, 2026 · 1:12 PM</td>
+            <td data-label="Duration">4m 29s</td>
+            <td data-label="Asked">Battery disconnect sequence for a hybrid Camry</td>
+            <td data-label="Outcome"><span class="status-pill status-resolved">Resolved</span></td>
+          </tr>
+          <tr>
+            <td data-label="Technician"><span class="user-chip"><span class="user-chip-avatar">JT</span>Jordan Tavares</span></td>
+            <td data-label="Started">Sep 5, 2026 · 10:58 AM</td>
+            <td data-label="Duration">14m 37s</td>
+            <td data-label="Asked">Full brake bleed walkthrough, interrupted three times for step repeats</td>
+            <td data-label="Outcome"><span class="status-pill status-interrupted">3 interruptions handled</span></td>
+          </tr>
+          <tr>
+            <td data-label="Technician"><span class="user-chip"><span class="user-chip-avatar">AR</span>Alex Rivera</span></td>
+            <td data-label="Started">Sep 5, 2026 · 8:41 AM</td>
+            <td data-label="Duration">1m 47s</td>
+            <td data-label="Asked">Oil filter part number for a Kawasaki Ninja 400</td>
+            <td data-label="Outcome"><span class="status-pill status-resolved">Resolved</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer class="site-footer">
+      <div class="footer-brand">
+        <div class="brand">
+          <span class="brand-mark">EA</span>
+          <span class="brand-name">EchoAssist</span>
+        </div>
+        <p class="footer-tagline">A voice assistant for people whose hands are already busy.</p>
+        <div class="footer-social">
+          <a href="#" aria-label="EchoAssist on X">X</a>
+          <a href="#" aria-label="EchoAssist on GitHub">GitHub</a>
+          <a href="#" aria-label="EchoAssist on LinkedIn">LinkedIn</a>
+        </div>
+      </div>
+
+      <div class="footer-links">
+        <span class="footer-heading">Product</span>
+        <a href="index.html">Dashboard</a>
+        <a href="voice-agent.html">Voice Agent</a>
+        <a href="history.html">History</a>
+      </div>
+
+      <div class="footer-contact">
+        <span class="footer-heading">Contact</span>
+        <a href="mailto:team@echoassist.app">team@echoassist.app</a>
+      </div>
+
+      <div class="footer-legal">
+        <p>© 2026 EchoAssist. All rights reserved.</p>
+      </div>
+    </footer>
+
+  </main>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

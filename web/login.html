@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script>
+
+  (function () {
+    try {
+      var stored = localStorage.getItem("echoassist_theme");
+      var isDark = stored ? stored === "dark" : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      if (isDark) document.documentElement.classList.add("dark");
+    } catch (e) {}
+  })();
+</script>
+<title>Log in — EchoAssist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+<style>
+  
+  body.login-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .login-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 36px 32px;
+  }
+  .login-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+  .login-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.4rem;
+    margin: 0 0 6px;
+  }
+  .login-sub {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 0 0 26px;
+  }
+  .login-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .login-field label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+  .login-field input {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  .login-field input:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+  }
+  .login-submit {
+    width: 100%;
+    margin-top: 8px;
+    padding: 11px 0;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .login-submit:hover { filter: brightness(0.96); }
+  .login-error {
+    color: #C0392B;
+    font-size: 0.82rem;
+    margin: -6px 0 14px;
+    display: none;
+  }
+  .login-error.is-visible { display: block; }
+  .login-note {
+    margin-top: 20px;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    text-align: center;
+  }
+</style>
+</head>
+<body class="login-body">
+
+  <form class="login-card" id="login-form" novalidate>
+    <div class="login-brand">
+      <span class="brand-mark">EA</span>
+      <span class="brand-name">EchoAssist</span>
+    </div>
+    <h1 class="login-title">Welcome back</h1>
+    <p class="login-sub">Sign in to open your dashboard.</p>
+
+    <div class="login-field">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" autocomplete="username" />
+    </div>
+
+    <div class="login-field">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" />
+    </div>
+
+    <p class="login-error" id="login-error">Enter a username and password to continue.</p>
+
+    <button type="submit" class="login-submit">Log in</button>
+
+    <p class="login-note">Enter your username and password to sign in.</p>
+  </form>
+
+<script>
+
+  document.getElementById("login-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const errorEl = document.getElementById("login-error");
+
+    if (!username || !password) {
+      errorEl.classList.add("is-visible");
+      return;
+    }
+    errorEl.classList.remove("is-visible");
+
+    sessionStorage.setItem("echoassist_loggedIn", "true");
+    sessionStorage.setItem("echoassist_username", username);
+    window.location.href = "index.html";
+  });
+</script>
+</body>
+</html>

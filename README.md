@@ -43,7 +43,7 @@ EchoAssist solves interruption and recovery through a dual-layer strategy:
 - **Deterministic Stale-Task Fencing:** Long-running tool executions actively monitor turn status and abort immediately if superseded, preventing stale database records from returning.
 - **Context & History Sanitization:** When an interruption occurs, partial and aborted assistant chat items are purged from conversation history so the LLM never sees abandoned speech during subsequent turns.
 - **Spoken Technical Clarity:** Prompt instructions mandate that numerical values are spelled out in words (e.g., "twenty newton meters" instead of "20 Nm") and technical manual specs are relayed verbatim for crisp TTS delivery.
-- **Dual Interface:** Run headlessly in the terminal (`console` or `dev` mode) or connect via the included browser WebRTC interface (`web/index.html` and `web/token_server.py`).
+- **Dual Interface:** Run headlessly in the terminal (`console` or `dev` mode) or connect via the browser client — a small multi-page app (`web/login.html` → `web/index.html` → `web/voice-agent.html`, with `web/history.html` for past sessions) backed by `web/token_server.py`.
 
 ---
 
@@ -133,11 +133,34 @@ By explicitly removing the aborted message from `session.history`, subsequent tu
   - LLM inference and streaming completions via Groq (`openai/gpt-oss-120b`).
   - Streaming voice synthesis via Rime Arcana (`celeste`) over WebSocket.
   - Real-time VAD, barge-in detection, and event handling.
-  - Browser-based WebRTC client (`web/index.html`) and HTTP token server (`web/token_server.py`).
+  - Browser-based WebRTC client (`web/voice-agent.html`) and HTTP token server (`web/token_server.py`), fronted by a small multi-page dashboard (`web/login.html`, `web/index.html`, `web/history.html`) sharing `web/style.css` and `web/script.js`.
 
 - **Simulated Components:**
   - **Database Latency:** In `lookup_repair_spec`, an artificial `await asyncio.sleep(5.0)` stands in for an external vehicle manual database. This deterministic 5-second window allows testers to reliably demonstrate mid-lookup barge-ins.
   - **Manual Data:** An in-memory dictionary (`REPAIR_MANUAL`) containing sample automotive repair specifications (spark plugs, check engine lights, oil drain plugs, brake valves, lug nuts, tire pressure sensors).
+  - **Web Login:** `web/login.html` is a session gate, not real authentication — any non-empty username/password signs you in.
+  - **Session History:** `web/history.html` shows hand-written sample session records, not data pulled from a real backend.
+
+---
+
+## Web Frontend
+
+The `web/` client is a small multi-page front end (plain HTML/CSS/JS, no framework) that sits in front of the LiveKit voice agent:
+
+| Page | Purpose |
+| :--- | :--- |
+| `login.html` | Entry point. Demo session gate — sets a `sessionStorage` flag on submit, no real backend auth. |
+| `index.html` | Dashboard — hero section, project explanation, "how it works," and the entry point into the voice agent. |
+| `voice-agent.html` | The actual voice widget: mic button, live status (idle/listening/speaking/interrupted), live transcript, and a collapsible technical log. Connects to `token_server.py` to join the LiveKit room. |
+| `history.html` | Session history table (technician, start time, duration, what was asked, outcome). Currently sample data — not wired to a real session log yet. |
+
+Shared across all pages:
+- `style.css` — a single design-token system (CSS custom properties) driving both a light and dark theme, plus the sidebar/layout rules.
+- `script.js` — the auth guard (redirects to `login.html` if the session flag isn't set), theme toggle with `localStorage` persistence, collapsible sidebar, mobile nav, and logout.
+
+Theme preference is stored in `localStorage` and read by a small inline script at the top of every page's `<head>`, so the light/dark choice is consistent across pages and doesn't flash the wrong theme on load.
+
+Because there's no database yet, treat everything under `web/` as a **front-end prototype**: it talks to the real, deployed LiveKit agent for the voice functionality, but login and history are placeholders until a real backend is wired up.
 
 ---
 
@@ -207,7 +230,8 @@ To interact via the visual WebRTC browser client:
    uv run python web/token_server.py
    ```
    *(Runs on port 8080 by default)*
-3. Open `web/index.html` in your web browser, click the microphone button, and talk.
+3. Open `web/login.html` in your web browser and sign in — this is a demo gate only (any non-empty username/password works; there's no real auth backend yet), and it exists so the app has a proper entry point rather than dropping straight into the dashboard.
+4. From the sidebar, click **Voice Agent** (or the **Talk to EchoAssist** button on the dashboard) — this opens `web/voice-agent.html` in the same tab. Click the mic button and talk.
 
 ### 4. Docker Deployment
 ```bash
@@ -259,9 +283,11 @@ All test runs, latencies, edge-case observations, and bug logs are transparently
 
 ## Known Limitations
 
-1. **Simulated Manual Dictionary Keys:** In `src/agent.py`, `lookup_repair_spec` matches query strings against hardcoded keys like `"reset_procedure"` and `"torque_spec"`. If the LLM generates a tool query key that does not match these conditions, the tool falls back to general automotive knowledge rather than deep dictionary lookup.
+1. **Repair Manual Lookup Key Mismatch (open bug, not just a limitation):** `REPAIR_MANUAL` in `src/agent.py` defines per-part keys (`"spark plug"`, `"oil drain plug"`, `"brake bleed valve"`, `"lug nuts"`, `"tire pressure sensor"`, `"check engine light"`), but `lookup_repair_spec` doesn't look up any of them — it reads `REPAIR_MANUAL["reset_procedure"]` and `REPAIR_MANUAL["torque_spec"]` instead, neither of which exists in the dictionary. This raises an unhandled `KeyError` (not a graceful fallback) any time the tool is called for a torque or reset query — the two categories the system prompt specifically instructs it to use the tool for. The six real entries are currently unreachable. Fix: match `query_key` against `REPAIR_MANUAL`'s actual keys (e.g. substring match over `REPAIR_MANUAL.items()`) instead of two hardcoded keys that don't exist.
 2. **Speech Endpointing on Natural Pauses (BUG-003):** Fast endpointing (`endpointing_ms=500`) occasionally fragments continuous technician speech if there is a hesitation or pause, causing a false turn increment.
 3. **Automated Unit Test Fixture:** `tests/test_agent.py` requires updating the test harness to pass an explicit LLM mock or plugin into `AgentSession()` so `uv run pytest` can run without cloud inference dependency errors.
+4. **Demo-only web authentication:** `web/login.html` accepts any non-empty username/password and stores a session flag in `sessionStorage` — there is no real backend auth yet. Treat the whole `web/` client as a front-end prototype, not a secured deployment.
+5. **Sample history data:** `web/history.html` currently displays static, hand-written session records for demonstration. It isn't wired to a real session log or database yet — that would need the agent (or token server) to persist session data somewhere the front end can read.
 
 ---
 
@@ -272,9 +298,14 @@ DataForge_Project/
 ├── src/
 │   └── agent.py              # Main entrypoint: Agent persona, TurnTracker, tools, and event handlers
 ├── web/
-│   ├── index.html            # WebRTC browser client for audio testing
-│   ├── token_server.py       # Local token generation server for LiveKit rooms
-│   └── requirements.txt      # Web server requirements
+│   ├── login.html            # Entry point — demo session gate before the dashboard
+│   ├── index.html            # Dashboard — hero, "how it works", project overview
+│   ├── voice-agent.html      # WebRTC voice widget (LiveKit connection, mic, live transcript)
+│   ├── history.html          # Past sessions (currently sample/mock data, not live yet)
+│   ├── style.css             # Shared design system — layout, light/dark theme
+│   ├── script.js             # Shared interactions — auth guard, theme toggle, sidebar/nav
+│   ├── token_server.py       # Local/deployed token generation server for LiveKit rooms
+│   └── requirements.txt      # Web server requirements (token server only)
 ├── tests/
 │   └── test_agent.py         # Pytest test suite for agent behavior
 ├── docs/

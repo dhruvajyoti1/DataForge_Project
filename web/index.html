@@ -2,283 +2,170 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script>
+  (function () {
+    try {
+      var stored = localStorage.getItem("echoassist_theme");
+      var isDark = stored ? stored === "dark" : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      if (isDark) document.documentElement.classList.add("dark");
+    } catch (e) {}
+  })();
+</script>
 <title>EchoAssist</title>
-<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
-<style>
-  :root {
-    --idle: #6b7280;
-    --listening: #2563eb;
-    --speaking: #16a34a;
-    --interrupted: #dc2626;
-  }
-  body {
-    font-family: system-ui, sans-serif;
-    background: #0f172a;
-    color: #e5e7eb;
-    min-height: 100vh;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 24px 16px 40px;
-    gap: 20px;
-  }
-  h1 { font-size: 1.1rem; font-weight: 600; color: #94a3b8; margin: 8px 0 0; }
-  #mic-btn {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    border: none;
-    background: var(--idle);
-    color: white;
-    font-size: 1.8rem;
-    cursor: pointer;
-    transition: background 0.2s, transform 0.15s;
-    flex-shrink: 0;
-  }
-  #mic-btn:active { transform: scale(0.96); }
-  #mic-btn.listening { background: var(--listening); box-shadow: 0 0 0 8px rgba(37,99,235,0.25); }
-  #mic-btn.speaking  { background: var(--speaking);  box-shadow: 0 0 0 8px rgba(22,163,74,0.25); }
-  #mic-btn.interrupted { background: var(--interrupted); box-shadow: 0 0 0 8px rgba(220,38,38,0.35); }
-  #status { font-size: 1rem; font-weight: 500; letter-spacing: 0.02em; }
-  #status.idle { color: var(--idle); }
-  #status.listening { color: var(--listening); }
-  #status.speaking { color: var(--speaking); }
-  #status.interrupted { color: var(--interrupted); }
-
-  #transcript {
-    width: min(92vw, 560px);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    background: #111827;
-    border-radius: 12px;
-    padding: 16px;
-    min-height: 200px;
-    max-height: 50vh;
-    overflow-y: auto;
-  }
-  .bubble {
-    max-width: 80%;
-    padding: 10px 14px;
-    border-radius: 14px;
-    font-size: 0.92rem;
-    line-height: 1.35;
-    white-space: pre-wrap;
-  }
-  .bubble.user {
-    align-self: flex-end;
-    background: #2563eb;
-    color: white;
-    border-bottom-right-radius: 4px;
-  }
-  .bubble.agent {
-    align-self: flex-start;
-    background: #1e293b;
-    color: #e5e7eb;
-    border-bottom-left-radius: 4px;
-  }
-  .bubble.agent.interim { opacity: 0.55; font-style: italic; }
-  .bubble.system {
-    align-self: center;
-    background: transparent;
-    color: #fbbf24;
-    font-weight: 600;
-    font-size: 0.82rem;
-    text-align: center;
-    max-width: 95%;
-  }
-  .bubble.system.interrupt { color: #f87171; }
-
-  #log-toggle {
-    width: min(92vw, 560px);
-    background: none;
-    border: 1px solid #334155;
-    color: #94a3b8;
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 0.75rem;
-    cursor: pointer;
-  }
-  #log {
-    width: min(92vw, 560px);
-    max-height: 160px;
-    overflow-y: auto;
-    background: #1e293b;
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 0.75rem;
-    font-family: ui-monospace, monospace;
-    color: #94a3b8;
-    display: none;
-  }
-  #log.visible { display: block; }
-  #log div { padding: 2px 0; border-bottom: 1px solid #334155; }
-  #log div:last-child { border-bottom: none; }
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <h1>EchoAssist — Field Technician Assistant</h1>
+<button id="mobile-nav-toggle" class="mobile-nav-toggle" aria-label="Open menu" aria-expanded="false">
+  <span></span><span></span><span></span>
+</button>
+<div id="nav-overlay" class="nav-overlay"></div>
 
-  <button id="mic-btn">MIC</button>
-  <div id="status" class="idle">Not connected</div>
+<div class="app-shell">
 
-  <div id="transcript"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-head">
+        <div class="brand">
+          <span class="brand-mark">EA</span>
+          <span class="brand-name">EchoAssist</span>
+        </div>
+        <button id="sidebar-retract" class="sidebar-retract" aria-label="Collapse sidebar" aria-expanded="true">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+      </div>
 
-  <button id="log-toggle">Show technical log</button>
-  <div id="log"><div>Waiting to connect...</div></div>
+      <button id="theme-toggle" class="theme-toggle" aria-label="Switch to dark mode">
+        <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
+        <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <span class="theme-toggle-label">Light mode</span>
+      </button>
 
-<script>
-  const TOKEN_ENDPOINT = "https://dataforge-project-jbd7.onrender.com/api/token";
-  const ROOM_NAME = "echoassist-" + Math.random().toString(36).slice(2, 10);
+      <nav class="side-nav" aria-label="Primary">
+        <a href="index.html" class="side-nav-link is-active">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"></path><path d="M5 10v10h14V10"></path></svg>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="voice-agent.html" class="side-nav-link">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0"></path><path d="M12 19v3"></path></svg>
+          <span class="nav-label">Voice Agent</span>
+        </a>
+        <a href="history.html" class="side-nav-link">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg>
+          <span class="nav-label">History</span>
+        </a>
+      </nav>
+    </div>
 
-  const micBtn = document.getElementById("mic-btn");
-  const statusEl = document.getElementById("status");
-  const logEl = document.getElementById("log");
-  const logToggle = document.getElementById("log-toggle");
-  const transcriptEl = document.getElementById("transcript");
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <span class="sidebar-user-avatar" id="sidebar-user-avatar">AR</span>
+        <span class="sidebar-user-name" id="sidebar-user-name">Alex Rivera</span>
+      </div>
+      <button class="logout-btn" id="logout-btn" type="button">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        <span class="nav-label">Log out</span>
+      </button>
+    </div>
+  </aside>
 
-  let room = null;
-  let connected = false;
+  <main class="main" id="dashboard">
 
-  const activeBubbles = new Map();
+    <section class="hero hero-fullbleed">
+      <div class="hero-bg-overlay"></div>
+      <div class="hero-copy">
+        <p class="hero-kicker">Field repair, hands-free</p>
+        <h1 class="hero-title">Both hands on the engine. Voice on the fix.</h1>
+        <p class="hero-sub">EchoAssist listens while you work. Ask it something mid-answer and it stops talking to hear you — no screen, no taps, no losing your place under the hood.</p>
+        <a href="voice-agent.html" class="hero-cta">Talk to EchoAssist</a>
+      </div>
+    </section>
 
-  let agentWasSpeaking = false;
-  let userWasSpeaking = false;
+    <section class="about" id="about">
+      <div class="about-copy">
+        <h2>Built for hands that are already busy</h2>
+        <p>A technician mid-repair can't stop to type a search query or scroll a manual. EchoAssist is a voice-first assistant that stays on the line while you work, answers from the repair manual, and — critically — knows when to stop talking and listen if you interrupt it.</p>
+        <p>It's a working proof of the "interruption and recovery" problem: an assistant that removes speech as an input isn't just less convenient, it stops being usable at all for this job.</p>
+      </div>
+      <div class="about-steps">
+        <h3>How it works</h3>
+        <ol class="steps-list">
+          <li>
+            <span class="step-index">1</span>
+            <div>
+              <strong>Listen</strong>
+              <p>Deepgram transcribes what you say in real time, even with shop noise in the background.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-index">2</span>
+            <div>
+              <strong>Respond</strong>
+              <p>The assistant answers immediately, grounded in the repair manual for the vehicle in front of you.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-index">3</span>
+            <div>
+              <strong>Yield</strong>
+              <p>Start talking mid-answer and it stops, drops the stale answer, and listens to your new question instead.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
 
-  logToggle.addEventListener("click", () => {
-    logEl.classList.toggle("visible");
-    logToggle.textContent = logEl.classList.contains("visible")
-      ? "Hide technical log"
-      : "Show technical log";
-  });
+    <section class="placeholder-section">
+      <p class="placeholder-label">EchoAssist is designed around real-time turn tracking and state fencing to handle clean voice interruptions:</p>
+      
+      <ul class="feature-list">
+        <li><strong>Turn Tracking (TurnLog / SessionState):</strong> Every user prompt, tool call, and generated answer is tagged with a unique turn ID.</li>
+        <li><strong>Task Fencing (is_stale()):</strong> Before returning a tool result or speaking an answer, the system checks if the user has spoken a new query. If a new turn has started, <code>is_stale()</code> evaluates to true and raises a <code>CancelledError</code>.</li>
+        <li><strong>Single-Turn Speech Truncation:</strong> When a user speaks mid-response, the ongoing text-to-speech (TTS) stream stops immediately within one turn.</li>
+        <li><strong>Stale Result Discarding:</strong> In-flight lookup tasks (such as database or manual queries) are canceled and discarded rather than queued or spoken later.</li>
+        <li><strong>Single-Response Delivery:</strong> The final output reflects strictly the user's most recent request without blending, repeating, or combining content from the stale request.</li>
+        <li><strong>Context Preservation without Stale Output:</strong> The system keeps the conversation history in memory so prior context isn't lost, but blocks any generated text or audio originating from the interrupted turn.</li>
+        <li><strong>Interruption Logging:</strong> Event handlers track <code>user_state_changed</code> and <code>conversation_item_added</code> to log exact timestamps of interruptions and cutoffs for auditability.</li>
+      </ul>
+    </section>
 
-  function setStatus(state, text) {
-    statusEl.className = state;
-    statusEl.textContent = text;
-    micBtn.className = state;
-  }
+    <footer class="site-footer">
+      <div class="footer-brand">
+        <div class="brand">
+          <span class="brand-mark">EA</span>
+          <span class="brand-name">EchoAssist</span>
+        </div>
+        <p class="footer-tagline">A voice assistant for people whose hands are already busy.</p>
+        <div class="footer-social">
+          <a href="https://github.com/dhruvajyoti1" aria-label="EchoAssist on GitHub" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/in/dhruvajyotibordoloi42" aria-label="EchoAssist on LinkedIn" target="_blank">LinkedIn</a>
+        </div>
+      </div>
 
-  function log(msg) {
-    const line = document.createElement("div");
-    line.textContent = msg;
-    logEl.appendChild(line);
-    logEl.scrollTop = logEl.scrollHeight;
-  }
+      <div class="footer-links">
+        <span class="footer-heading">Product</span>
+        <a href="index.html">Dashboard</a>
+        <a href="voice-agent.html">Voice Agent</a>
+        <a href="history.html">History</a>
+      </div>
 
-  function scrollTranscript() {
-    transcriptEl.scrollTop = transcriptEl.scrollHeight;
-  }
+      <div class="footer-contact">
+        <span class="footer-heading">Contact</span>
+        <a href="mailto:dhruvajyotibordoloi@gmail.com">dhruvajyotibordoloi@gmail.com</a>
+      </div>
 
-  function addSystemBubble(text, isInterrupt) {
-    const bubble = document.createElement("div");
-    bubble.className = "bubble system" + (isInterrupt ? " interrupt" : "");
-    bubble.textContent = text;
-    transcriptEl.appendChild(bubble);
-    scrollTranscript();
-  }
+      <div class="footer-legal">
+        <p>© 2026 EchoAssist. All rights reserved.</p>
+      </div>
+    </footer>
 
-  function upsertBubble(segmentId, role, text, isFinal) {
-    let bubble = activeBubbles.get(segmentId);
-    if (!bubble) {
-      bubble = document.createElement("div");
-      bubble.className = "bubble " + role + (isFinal ? "" : " interim");
-      transcriptEl.appendChild(bubble);
-      activeBubbles.set(segmentId, bubble);
-    }
-    bubble.textContent = text;
-    if (isFinal) {
-      bubble.classList.remove("interim");
-      activeBubbles.delete(segmentId);
-    }
-    scrollTranscript();
-  }
+  </main>
+</div>
 
-  async function fetchConnectionDetails() {
-    const identity = "user-" + Math.random().toString(36).slice(2, 10);
-    const url = TOKEN_ENDPOINT + "?room=" + encodeURIComponent(ROOM_NAME) + "&identity=" + identity;
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error("Could not fetch token from token server.");
-    const data = await resp.json();
-    return { token: data.token, serverUrl: data.serverUrl };
-  }
-
-  async function connectToRoom() {
-    const RoomCtor = LivekitClient.Room;
-    const RoomEvent = LivekitClient.RoomEvent;
-    room = new RoomCtor({ adaptiveStream: true });
-
-    room.on(RoomEvent.Connected, () => {
-      connected = true;
-      setStatus("idle", "Connected - say something");
-      log("Connected to room.");
-    });
-
-    room.on(RoomEvent.Disconnected, () => {
-      connected = false;
-      setStatus("idle", "Disconnected");
-      log("Disconnected.");
-    });
-
-    room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
-      const localSpeaking = speakers.some((p) => p.isLocal);
-      const agentSpeaking = speakers.some((p) => !p.isLocal);
-
-      if (localSpeaking && agentSpeaking) {
-        setStatus("interrupted", "Interrupting...");
-        if (!userWasSpeaking || !agentWasSpeaking) {
-          addSystemBubble("Interrupted - previous answer dropped", true);
-          log("Interruption detected.");
-        }
-      } else if (localSpeaking) {
-        setStatus("listening", "Listening...");
-      } else if (agentSpeaking) {
-        setStatus("speaking", "EchoAssist speaking...");
-      } else {
-        setStatus("idle", "Idle");
-      }
-
-      userWasSpeaking = localSpeaking;
-      agentWasSpeaking = agentSpeaking;
-    });
-
-    room.on(RoomEvent.TranscriptionReceived, (segments, participant) => {
-      const isLocal = participant && participant.isLocal;
-      const role = isLocal ? "user" : "agent";
-      for (const seg of segments) {
-        if (!seg.text) continue;
-        upsertBubble(seg.id, role, seg.text, seg.final === true);
-      }
-    });
-
-    room.on(RoomEvent.TrackSubscribed, (track) => {
-      if (track.kind === "audio") {
-        const el = track.attach();
-        document.body.appendChild(el);
-      }
-    });
-
-    const { token, serverUrl } = await fetchConnectionDetails();
-    await room.connect(serverUrl, token);
-    await room.localParticipant.setMicrophoneEnabled(true);
-  }
-
-  micBtn.addEventListener("click", async () => {
-    if (!connected) {
-      setStatus("idle", "Connecting...");
-      try {
-        await connectToRoom();
-      } catch (err) {
-        setStatus("idle", "Connection failed");
-        log("Error: " + err.message);
-      }
-    } else {
-      const enabled = room.localParticipant.isMicrophoneEnabled;
-      await room.localParticipant.setMicrophoneEnabled(!enabled);
-      log(enabled ? "Mic muted" : "Mic unmuted");
-    }
-  });
-</script>
+<script src="script.js"></script>
 </body>
 </html>

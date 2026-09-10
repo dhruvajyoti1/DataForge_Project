@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script>
+
+  (function () {
+    try {
+      var stored = localStorage.getItem("echoassist_theme");
+      var isDark = stored ? stored === "dark" : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      if (isDark) document.documentElement.classList.add("dark");
+    } catch (e) {}
+  })();
+</script>
+<title>EchoAssist — Voice Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2.22.3/dist/livekit-client.umd.min.js"></script>
+<link rel="stylesheet" href="style.css" />
+<style>
+  :root {
+    --idle: #6b7280;
+    --listening: #2563eb;
+    --speaking: var(--accent);
+    --interrupted: #dc2626;
+  }
+
+  body.voice-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+    gap: 18px;
+  }
+
+  .voice-topbar {
+    width: min(92vw, 640px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 4px;
+  }
+
+  #back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+  }
+  #back-link:hover { color: var(--text); }
+
+  .voice-header {
+    text-align: center;
+  }
+
+  .voice-header h1 {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 4px;
+  }
+
+  .voice-stage {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    width: 100%;
+  }
+
+  .voice-stage::before {
+    content: "";
+    position: absolute;
+    inset: -8% 10%;
+    background:
+      radial-gradient(circle at 25% 15%, color-mix(in srgb, var(--accent) 45%, transparent), transparent 60%),
+      radial-gradient(circle at 80% 75%, color-mix(in srgb, var(--focus) 40%, transparent), transparent 55%);
+    filter: blur(50px);
+    z-index: -1;
+  }
+
+  #mic-btn {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: none;
+    background: var(--idle);
+    color: white;
+    font-size: 1.8rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    flex-shrink: 0;
+  }
+  #mic-btn:active { transform: scale(0.96); }
+  #mic-btn.listening { background: var(--listening); box-shadow: 0 0 0 8px color-mix(in srgb, var(--listening) 25%, transparent); }
+  #mic-btn.speaking  { background: var(--speaking);  box-shadow: 0 0 0 8px color-mix(in srgb, var(--speaking) 25%, transparent); color: var(--accent-ink); }
+  #mic-btn.interrupted { background: var(--interrupted); box-shadow: 0 0 0 8px color-mix(in srgb, var(--interrupted) 30%, transparent); }
+
+  #status { font-size: 1rem; font-weight: 500; letter-spacing: 0.02em; }
+  #status.idle { color: var(--idle); }
+  #status.listening { color: var(--listening); }
+  #status.speaking { color: var(--speaking); }
+  #status.interrupted { color: var(--interrupted); }
+
+  #transcript {
+    width: min(92vw, 560px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: linear-gradient(160deg, rgba(255,255,255,0.4), rgba(255,255,255,0.1));
+    border: 1px solid rgba(255,255,255,0.4);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.10);
+    border-radius: 16px;
+    padding: 18px;
+    min-height: 200px;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  html.dark #transcript {
+    background: linear-gradient(160deg, rgba(255,255,255,0.09), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.14);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+  }
+
+  .bubble {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 0.92rem;
+    line-height: 1.35;
+    white-space: pre-wrap;
+  }
+  .bubble.user {
+    align-self: flex-end;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-bottom-right-radius: 4px;
+  }
+  .bubble.agent {
+    align-self: flex-start;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-bottom-left-radius: 4px;
+  }
+  .bubble.agent.interim { opacity: 0.6; font-style: italic; }
+  .bubble.system {
+    align-self: center;
+    background: transparent;
+    color: #b45309;
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-align: center;
+    max-width: 95%;
+  }
+  html.dark .bubble.system { color: #fbbf24; }
+  .bubble.system.interrupt { color: #dc2626; }
+  html.dark .bubble.system.interrupt { color: #f87171; }
+
+  #log-toggle {
+    width: min(92vw, 560px);
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--text-muted);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+  #log-toggle:hover { color: var(--text); }
+
+  #log {
+    width: min(92vw, 560px);
+    max-height: 160px;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.75rem;
+    font-family: ui-monospace, monospace;
+    color: var(--text-muted);
+    display: none;
+  }
+  #log.visible { display: block; }
+  #log div { padding: 2px 0; border-bottom: 1px solid var(--line); }
+  #log div:last-child { border-bottom: none; }
+</style>
+</head>
+<body class="voice-body">
+
+  <div class="voice-topbar">
+    <a href="index.html" id="back-link">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      Back to dashboard
+    </a>
+    <button id="theme-toggle" class="theme-toggle" style="width:auto;" aria-label="Switch to dark mode">
+      <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
+      <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+      <span class="theme-toggle-label">Light mode</span>
+    </button>
+  </div>
+
+  <div class="voice-header">
+    <h1>EchoAssist — Field Technician Assistant</h1>
+  </div>
+
+  <div class="voice-stage">
+    <button id="mic-btn" aria-label="Toggle microphone">MIC</button>
+    <div id="status" class="idle">Not connected</div>
+
+    <div id="transcript"></div>
+
+    <button id="log-toggle">Show technical log</button>
+    <div id="log"><div>Waiting to connect...</div></div>
+  </div>
+
+<script src="script.js"></script>
+<script>
+  const TOKEN_ENDPOINT = "https://dataforge-project-jbd7.onrender.com/api/token";
+  const ROOM_NAME = "echoassist-" + Math.random().toString(36).slice(2, 10);
+
+  const INTERRUPTION_DEBOUNCE_MS = 300;
+
+  const micBtn = document.getElementById("mic-btn");
+  const statusEl = document.getElementById("status");
+  const logEl = document.getElementById("log");
+  const logToggle = document.getElementById("log-toggle");
+  const transcriptEl = document.getElementById("transcript");
+
+  let room = null;
+  let connected = false;
+
+  const activeBubbles = new Map();
+  const attachedAudioEls = new Map();
+
+  let agentWasSpeaking = false;
+  let userWasSpeaking = false;
+  let interruptionTimer = null;
+  let interruptionLogged = false;
+
+  logToggle.addEventListener("click", () => {
+    logEl.classList.toggle("visible");
+    logToggle.textContent = logEl.classList.contains("visible")
+      ? "Hide technical log"
+      : "Show technical log";
+  });
+
+  function setStatus(state, text) {
+    statusEl.className = state;
+    statusEl.textContent = text;
+    micBtn.className = state;
+  }
+
+  function log(msg) {
+    const line = document.createElement("div");
+    line.textContent = msg;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function scrollTranscript() {
+    transcriptEl.scrollTop = transcriptEl.scrollHeight;
+  }
+
+  function addSystemBubble(text, isInterrupt) {
+    const bubble = document.createElement("div");
+    bubble.className = "bubble system" + (isInterrupt ? " interrupt" : "");
+    bubble.textContent = text;
+    transcriptEl.appendChild(bubble);
+    scrollTranscript();
+  }
+
+  function upsertBubble(segmentId, role, text, isFinal) {
+    let bubble = activeBubbles.get(segmentId);
+    if (!bubble) {
+      bubble = document.createElement("div");
+      bubble.className = "bubble " + role + (isFinal ? "" : " interim");
+      transcriptEl.appendChild(bubble);
+      activeBubbles.set(segmentId, bubble);
+    }
+    bubble.textContent = text;
+    if (isFinal) {
+      bubble.classList.remove("interim");
+      activeBubbles.delete(segmentId);
+    }
+    scrollTranscript();
+  }
+
+  async function fetchConnectionDetails() {
+    const identity = "user-" + Math.random().toString(36).slice(2, 10);
+    const url = TOKEN_ENDPOINT + "?room=" + encodeURIComponent(ROOM_NAME) + "&identity=" + identity;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error("Could not fetch token from token server.");
+    const data = await resp.json();
+    return { token: data.token, serverUrl: data.serverUrl };
+  }
+
+  function friendlyErrorMessage(err) {
+    const name = err && err.name;
+    if (name === "NotAllowedError") return "Microphone permission was denied. Please allow mic access and try again.";
+    if (name === "NotFoundError") return "No microphone was found on this device.";
+    if (err && /token/i.test(err.message || "")) return "Could not reach the connection server. Please try again.";
+    return "Connection failed. Please try again.";
+  }
+
+  function detachAllAudio() {
+    for (const el of attachedAudioEls.values()) {
+      el.remove();
+    }
+    attachedAudioEls.clear();
+  }
+
+  async function connectToRoom() {
+    const RoomCtor = LivekitClient.Room;
+    const RoomEvent = LivekitClient.RoomEvent;
+    room = new RoomCtor({ adaptiveStream: true });
+
+    room.on(RoomEvent.Connected, () => {
+      connected = true;
+      setStatus("idle", "Connected - say something");
+      log("Connected to room.");
+    });
+
+    room.on(RoomEvent.Reconnecting, () => {
+      setStatus("idle", "Reconnecting...");
+      log("Reconnecting...");
+    });
+
+    room.on(RoomEvent.Reconnected, () => {
+      setStatus("idle", "Reconnected - say something");
+      log("Reconnected.");
+    });
+
+    room.on(RoomEvent.Disconnected, () => {
+      connected = false;
+      setStatus("idle", "Disconnected");
+      log("Disconnected.");
+      detachAllAudio();
+    });
+
+    room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
+      const localSpeaking = speakers.some((p) => p.isLocal);
+      const agentSpeaking = speakers.some((p) => !p.isLocal);
+      const bothSpeaking = localSpeaking && agentSpeaking;
+
+      if (bothSpeaking) {
+        setStatus("interrupted", "Interrupting...");
+        if (!interruptionTimer && !interruptionLogged) {
+          interruptionTimer = setTimeout(() => {
+            interruptionTimer = null;
+            if (userWasSpeaking && agentWasSpeaking) {
+              addSystemBubble("Interrupted - previous answer dropped", true);
+              log("Interruption detected.");
+              interruptionLogged = true;
+            }
+          }, INTERRUPTION_DEBOUNCE_MS);
+        }
+      } else {
+        if (interruptionTimer) {
+          clearTimeout(interruptionTimer);
+          interruptionTimer = null;
+        }
+        interruptionLogged = false;
+
+        if (localSpeaking) {
+          setStatus("listening", "Listening...");
+        } else if (agentSpeaking) {
+          setStatus("speaking", "EchoAssist speaking...");
+        } else {
+          setStatus("idle", "Idle");
+        }
+      }
+
+      userWasSpeaking = localSpeaking;
+      agentWasSpeaking = agentSpeaking;
+    });
+
+    room.on(RoomEvent.TranscriptionReceived, (segments, participant) => {
+      const isLocal = participant && participant.isLocal;
+      const role = isLocal ? "user" : "agent";
+      for (const seg of segments) {
+        if (!seg.text) continue;
+        upsertBubble(seg.id, role, seg.text, seg.final === true);
+      }
+    });
+
+    room.on(RoomEvent.TrackSubscribed, (track, publication) => {
+      if (track.kind === "audio") {
+        const el = track.attach();
+        document.body.appendChild(el);
+        attachedAudioEls.set(publication.trackSid, el);
+      }
+    });
+
+    room.on(RoomEvent.TrackUnsubscribed, (track, publication) => {
+      if (track.kind === "audio") {
+        const el = attachedAudioEls.get(publication.trackSid);
+        if (el) {
+          el.remove();
+          attachedAudioEls.delete(publication.trackSid);
+        }
+        track.detach();
+      }
+    });
+
+    const { token, serverUrl } = await fetchConnectionDetails();
+    await room.connect(serverUrl, token);
+    await room.localParticipant.setMicrophoneEnabled(true);
+  }
+
+  micBtn.addEventListener("click", async () => {
+    if (!connected) {
+      setStatus("idle", "Connecting...");
+      try {
+        await connectToRoom();
+      } catch (err) {
+        setStatus("idle", "Connection failed");
+        log("Error: " + err.message);
+        addSystemBubble(friendlyErrorMessage(err), false);
+      }
+    } else {
+      const enabled = room.localParticipant.isMicrophoneEnabled;
+      await room.localParticipant.setMicrophoneEnabled(!enabled);
+      log(enabled ? "Mic muted" : "Mic unmuted");
+    }
+  });
+
+  window.addEventListener("pagehide", () => {
+    if (room && connected) {
+      room.disconnect();
+    }
+  });
+</script>
+</body>
+</html>
